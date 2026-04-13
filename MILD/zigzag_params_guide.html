@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>ZigZag 파라미터 가이드</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --card: #1a1a2e;
+    --border: #2a2a4a;
+    --blue: #4a9eff;
+    --orange: #ff7043;
+    --green: #26a69a;
+    --red: #ef5350;
+    --gold: #ffd54f;
+    --text: #e0e0e0;
+    --muted: #888;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Malgun Gothic', 'Segoe UI', sans-serif; padding: 32px 24px; }
+
+  h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 36px; }
+
+  /* ── Section header ── */
+  .section-label {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+    border-left: 3px solid var(--blue); padding-left: 10px;
+    margin-bottom: 16px; margin-top: 40px;
+  }
+
+  /* ── Grid ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 24px;
+  }
+  .card-title {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+  }
+  .card-value {
+    font-size: 2rem; font-weight: 700; line-height: 1;
+  }
+  .card-desc { font-size: 0.82rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 0.72rem; font-weight: 700; margin-right: 4px; margin-top: 6px;
+  }
+  .tag-blue  { background: rgba(74,158,255,0.15); color: var(--blue); }
+  .tag-orange{ background: rgba(255,112,67,0.15);  color: var(--orange); }
+  .tag-green { background: rgba(38,166,154,0.15);  color: var(--green); }
+  .tag-red   { background: rgba(239,83,80,0.15);   color: var(--red); }
+  .tag-gold  { background: rgba(255,213,79,0.15);  color: var(--gold); }
+
+  /* ── Plotly container ── */
+  .plot-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+
+  /* ── Flow diagram ── */
+  .flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-top: 12px; }
+  .flow-step {
+    background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.3);
+    border-radius: 8px; padding: 10px 16px; font-size: 0.82rem; text-align: center;
+    min-width: 130px;
+  }
+  .flow-arrow { color: var(--muted); font-size: 1.2rem; padding: 0 6px; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  th { text-align: left; padding: 10px 14px; background: rgba(255,255,255,0.04);
+       color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ── Slider demo ── */
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .slider-row label { width: 130px; font-size: 0.82rem; color: var(--muted); flex-shrink: 0; }
+  input[type=range] {
+    flex: 1; accent-color: var(--blue); cursor: pointer;
+    height: 4px; border-radius: 2px;
+  }
+  .slider-val { width: 52px; text-align: right; font-size: 0.85rem; font-weight: 700; }
+  #asymResult {
+    margin-top: 14px; padding: 14px; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; line-height: 1.9;
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+</style>
+</head>
+<body>
+
+<h1>ZigZag 파라미터 가이드</h1>
+<p class="subtitle">multiscale_zigzag.py — MILD 프로젝트 파라미터 설명 자료</p>
+
+<!-- ───────────────────── 파라미터 흐름 ───────────────────── -->
+<div class="section-label">파라미터 계산 흐름</div>
+<div class="card">
+  <div class="flow">
+    <div class="flow-step">📅 <b>일봉 데이터</b><br><small>최근 252일</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">📊 <b>일일 변동률</b><br><small>|pct_change()|</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">📐 <b>Percentile</b><br><small>P70 / P95</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">✖️ <b>Multiplier</b><br><small>×1 / ×4</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">⬆️⬇️ <b>UP/DOWN</b><br><small>×1.2 / ×0.8</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(255,112,67,0.4);background:rgba(255,112,67,0.1)">🔀 <b>ZigZag</b><br><small>임계값 적용</small></div>
+  </div>
+</div>
+
+<!-- ───────────────────── 6개 파라미터 카드 ───────────────────── -->
+<div class="section-label">개별 파라미터</div>
+<div class="grid-3">
+
+  <div class="card">
+    <div class="card-title">VOLATILITY_LOOKBACK_DAYS</div>
+    <div class="card-value" style="color:var(--blue)">252</div>
+    <div class="card-desc">일일 변동률 분포를 계산할 과거 영업일 수.<br>약 1년치 데이터에 해당합니다.</div>
+    <span class="tag tag-blue">변동성 기준</span>
+    <div style="margin-top:12px;font-size:0.8rem;color:var(--muted)">
+      ↑ 늘리면: 장기 변동성 반영 → 임계값 안정<br>
+      ↓ 줄이면: 최근 변동성 민감 반영
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">SMALL_PERCENTILE</div>
+    <div class="card-value" style="color:var(--orange)">70</div>
+    <div class="card-desc">Small ZigZag 기준값. 일일 변동률 분포의 상위 30% (P70) 값을 base로 사용.</div>
+    <span class="tag tag-orange">Small ZigZag</span>
+    <div style="margin-top:12px;font-size:0.8rem;color:var(--muted)">
+      ↑ 높이면: 더 큰 파동만 인식 → 피벗 수 감소<br>
+      ↓ 낮추면: 작은 파동도 인식 → 피벗 수 증가
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">LARGE_PERCENTILE</div>
+    <div class="card-value" style="color:var(--blue)">95</div>
+    <div class="card-desc">Large ZigZag 기준값. 일일 변동률 분포의 상위 5% (P95) 값을 base로 사용.</div>
+    <span class="tag tag-blue">Large ZigZag</span>
+    <div style="margin-top:12px;font-size:0.8rem;color:var(--muted)">
+      ↑ 높이면: 극단적 변동만 반영 → 임계값 상승<br>
+      ↓ 낮추면: LARGE/SMALL 간격 축소
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">LARGE_MULTIPLIER</div>
+    <div class="card-value" style="color:var(--blue)">4.0×</div>
+    <div class="card-desc">LARGE_PERCENTILE 값에 곱하는 배율. P95 값만으로는 Large 파동 포착이 부족해 확대.</div>
+    <span class="tag tag-blue">Large ZigZag</span>
+    <span class="tag tag-gold">권장 범위 3~5</span>
+    <div style="margin-top:12px;font-size:0.8rem;color:var(--muted)">
+      ↑ 높이면: 큰 산만 남음 → 분석 기간당 피벗 감소<br>
+      ↓ 낮추면: Large/Small 구분 희미해짐
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">UP_RATIO</div>
+    <div class="card-value" style="color:var(--green)">1.2×</div>
+    <div class="card-desc">저점→고점 전환 감지 임계값 배율.<br>상승 반전은 더 확실한 움직임이 있어야 인정.</div>
+    <span class="tag tag-green">상승 반전</span>
+    <div style="margin-top:12px;font-size:0.8rem;color:var(--muted)">
+      ↑ 높이면: 잡음성 상승 반전 필터링 강화<br>
+      ↓ 낮추면: 작은 반등도 저점 확정으로 인식
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">DOWN_RATIO</div>
+    <div class="card-value" style="color:var(--red)">0.8×</div>
+    <div class="card-desc">고점→저점 전환 감지 임계값 배율.<br>하락은 빠르게 발생하므로 더 민감하게 감지.</div>
+    <span class="tag tag-red">하락 반전</span>
+    <div style="margin-top:12px;font-size:0.8rem;color:var(--muted)">
+      ↑ 높이면: 일시적 하락 필터링 → 하락 반전 둔감<br>
+      ↓ 낮추면: 소폭 하락에도 즉시 방향 전환
+    </div>
+  </div>
+
+</div>
+
+<!-- ───────────────────── 변동률 분포 차트 ───────────────────── -->
+<div class="section-label">P70 / P95 의미 — 가상 변동률 분포 예시</div>
+<div class="plot-wrap">
+  <div id="distPlot" style="height:300px"></div>
+</div>
+
+<!-- ───────────────────── ZigZag 알고리즘 동작 ───────────────────── -->
+<div class="section-label">ZigZag 알고리즘 동작 — 비대칭 임계값 예시</div>
+<div class="plot-wrap">
+  <div id="zigzagDemo" style="height:360px"></div>
+</div>
+
+<!-- ───────────────────── 비대칭 임계값 인터랙티브 계산기 ───────────────────── -->
+<div class="section-label">비대칭 임계값 인터랙티브 계산기</div>
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">파라미터 조정</div>
+    <div class="slider-row">
+      <label>Base (P70) %</label>
+      <input type="range" id="baseSmall" min="0.5" max="5" step="0.1" value="2.17">
+      <span class="slider-val" id="vBaseSmall">2.17%</span>
+    </div>
+    <div class="slider-row">
+      <label>Base (P95×4) %</label>
+      <input type="range" id="baseLarge" min="5" max="40" step="0.5" value="17.43">
+      <span class="slider-val" id="vBaseLarge">17.43%</span>
+    </div>
+    <div class="slider-row">
+      <label>UP_RATIO</label>
+      <input type="range" id="upRatio" min="0.5" max="2.0" step="0.05" value="1.2">
+      <span class="slider-val" id="vUpRatio">1.20</span>
+    </div>
+    <div class="slider-row">
+      <label>DOWN_RATIO</label>
+      <input type="range" id="downRatio" min="0.3" max="1.5" step="0.05" value="0.8">
+      <span class="slider-val" id="vDownRatio">0.80</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">계산 결과</div>
+    <div id="asymResult">슬라이더를 조정하세요</div>
+  </div>
+</div>
+
+<!-- ───────────────────── 파라미터 요약 테이블 ───────────────────── -->
+<div class="section-label">전체 파라미터 요약</div>
+<div class="card" style="padding: 0; overflow: hidden;">
+  <table>
+    <thead>
+      <tr>
+        <th>파라미터</th>
+        <th>기본값</th>
+        <th>역할</th>
+        <th>튜닝 방향</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>VOLATILITY_LOOKBACK_DAYS</b></td>
+        <td><span class="tag tag-blue">252</span></td>
+        <td>변동률 분포 계산 기간 (영업일)</td>
+        <td>126 ~ 504 사이에서 조정</td>
+      </tr>
+      <tr>
+        <td><b>SMALL_PERCENTILE</b></td>
+        <td><span class="tag tag-orange">70</span></td>
+        <td>Small ZigZag base = P70 변동률</td>
+        <td>60~80 — 높일수록 피벗 수 감소</td>
+      </tr>
+      <tr>
+        <td><b>LARGE_PERCENTILE</b></td>
+        <td><span class="tag tag-blue">95</span></td>
+        <td>Large ZigZag base = P95 변동률</td>
+        <td>90~99 — SMALL과 간격 유지 중요</td>
+      </tr>
+      <tr>
+        <td><b>LARGE_MULTIPLIER</b></td>
+        <td><span class="tag tag-gold">4.0</span></td>
+        <td>P95에 곱해 Large 임계값 확대</td>
+        <td>3~5 권장. 낮추면 Large ≈ Small</td>
+      </tr>
+      <tr>
+        <td><b>UP_RATIO</b></td>
+        <td><span class="tag tag-green">1.2</span></td>
+        <td>상승 반전 감지 임계값 배율</td>
+        <td>1.0~1.5 — 높이면 잡음 필터링</td>
+      </tr>
+      <tr>
+        <td><b>DOWN_RATIO</b></td>
+        <td><span class="tag tag-red">0.8</span></td>
+        <td>하락 반전 감지 임계값 배율</td>
+        <td>0.5~1.0 — 낮추면 하락 조기 포착</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:0.78rem;text-align:center">
+  MILD Project — ZigZag Parameter Guide &nbsp;|&nbsp; multiscale_zigzag.py
+</p>
+
+<!-- ───────────────────── Scripts ───────────────────── -->
+<script>
+// ── 1. 변동률 분포 차트 ──
+(function() {
+  // 가상 log-normal 분포 (실제 주가 변동률 특성 반영)
+  const N = 500;
+  const vals = [];
+  for (let i = 0; i < N; i++) {
+    // Box-Muller
+    const u1 = Math.random(), u2 = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    vals.push(Math.abs(1.3 + z * 0.9)); // 중앙 ~1.3%, std ~0.9
+  }
+  vals.sort((a,b) => a-b);
+
+  const p70 = vals[Math.floor(N * 0.70)];
+  const p95 = vals[Math.floor(N * 0.95)];
+  const p95x4 = p95 * 4;
+
+  const traces = [
+    {
+      x: vals, type: 'histogram', nbinsx: 40,
+      marker: { color: 'rgba(74,158,255,0.4)', line: { color: 'rgba(74,158,255,0.8)', width: 1 } },
+      name: '일일 절대 변동률 분포', hovertemplate: '%{x:.2f}%: %{y}건<extra></extra>'
+    },
+    {
+      x: [p70, p70], y: [0, 60], type: 'scatter', mode: 'lines',
+      line: { color: '#ff7043', width: 2, dash: 'dash' },
+      name: `P70 = ${p70.toFixed(2)}% (Small base)`
+    },
+    {
+      x: [p95, p95], y: [0, 60], type: 'scatter', mode: 'lines',
+      line: { color: '#4a9eff', width: 2, dash: 'dash' },
+      name: `P95 = ${p95.toFixed(2)}% (Large base before ×4)`
+    }
+  ];
+
+  const annotations = [
+    { x: p70, y: 55, text: `P70<br>${p70.toFixed(2)}%`, showarrow: true, arrowhead: 2,
+      ax: 30, ay: -20, font: { color: '#ff7043', size: 11 }, arrowcolor: '#ff7043' },
+    { x: p95, y: 45, text: `P95<br>${p95.toFixed(2)}%`, showarrow: true, arrowhead: 2,
+      ax: 30, ay: -20, font: { color: '#4a9eff', size: 11 }, arrowcolor: '#4a9eff' },
+    {
+      x: p95 * 0.5, y: 20,
+      text: `P95 × 4 = ${p95x4.toFixed(2)}%<br>→ Large 임계값 base`,
+      showarrow: false, font: { color: '#ffd54f', size: 10 },
+      bgcolor: 'rgba(255,213,79,0.1)', bordercolor: '#ffd54f', borderwidth: 1, borderpad: 6
+    }
+  ];
+
+  Plotly.newPlot('distPlot', traces, {
+    paper_bgcolor: 'transparent', plot_bgcolor: '#16213e',
+    font: { color: '#e0e0e0', family: 'Malgun Gothic, sans-serif', size: 11 },
+    xaxis: { title: '일일 절대 변동률 (%)', gridcolor: '#2a2a4a', zeroline: false },
+    yaxis: { title: '빈도', gridcolor: '#2a2a4a', zeroline: false },
+    legend: { bgcolor: 'rgba(0,0,0,0.3)', bordercolor: '#444', borderwidth: 1 },
+    margin: { l: 55, r: 20, t: 10, b: 50 },
+    annotations,
+    showlegend: true
+  }, { responsive: true, displayModeBar: false });
+})();
+
+// ── 2. ZigZag 동작 예시 ──
+(function() {
+  // 가상 가격 시계열 생성
+  const seed = [100, 102, 105, 103, 108, 112, 110, 107, 103, 99,
+                96, 98, 102, 106, 111, 115, 118, 114, 110, 108,
+                104, 100, 97, 101, 105, 109, 107, 112, 116, 120,
+                118, 113, 109, 105, 108, 112, 117, 121, 119, 115];
+  const days = seed.map((_, i) => i + 1);
+
+  // Base 임계값 설정
+  const base = 5.0;   // %
+  const upT   = base * 1.2 / 100;
+  const downT = base * 0.8 / 100;
+
+  // ZigZag 계산
+  function calcZZ(prices, up, down) {
+    const pivots = [];
+    let dir = null, extIdx = 0, extP = prices[0];
+    for (let i = 1; i < prices.length; i++) {
+      const p = prices[i];
+      if (dir === null) {
+        const ch = (p - extP) / extP;
+        if (ch >= up)       { pivots.push([extIdx, extP, 'trough']); dir = 'up';   extIdx = i; extP = p; }
+        else if (ch <= -down){ pivots.push([extIdx, extP, 'peak']);   dir = 'down'; extIdx = i; extP = p; }
+      } else if (dir === 'up') {
+        if (p >= extP) { extIdx = i; extP = p; }
+        else if ((extP - p) / extP >= down) {
+          pivots.push([extIdx, extP, 'peak']); dir = 'down'; extIdx = i; extP = p;
+        }
+      } else {
+        if (p <= extP) { extIdx = i; extP = p; }
+        else if ((p - extP) / extP >= up) {
+          pivots.push([extIdx, extP, 'trough']); dir = 'up'; extIdx = i; extP = p;
+        }
+      }
+    }
+    if (dir === 'up')   pivots.push([extIdx, extP, 'peak']);
+    else if (dir === 'down') pivots.push([extIdx, extP, 'trough']);
+    return pivots;
+  }
+
+  const pivots = calcZZ(seed, upT, downT);
+  const pxZZ = pivots.map(p => days[p[0]]);
+  const pyZZ = pivots.map(p => p[1]);
+
+  const symZZ = pivots.map(p => p[2] === 'peak' ? 'triangle-up' : 'triangle-down');
+  const colZZ = pivots.map(p => p[2] === 'peak' ? '#4a9eff' : '#ff7043');
+
+  // 주석 (비대칭 설명)
+  const annotations = [];
+  for (let i = 1; i < pivots.length; i++) {
+    const prev = pivots[i-1], cur = pivots[i];
+    const midX = (days[prev[0]] + days[cur[0]]) / 2;
+    const midY = (prev[1] + cur[1]) / 2;
+    const isUp = cur[2] === 'peak';
+    const thresh = isUp ? `↑ UP ${(base*1.2).toFixed(1)}%` : `↓ DN ${(base*0.8).toFixed(1)}%`;
+    const chg = ((cur[1] - prev[1]) / prev[1] * 100).toFixed(1);
+    annotations.push({
+      x: midX, y: midY + (isUp ? -4 : 4),
+      text: `${thresh}<br>(${chg > 0 ? '+' : ''}${chg}%)`,
+      showarrow: false,
+      font: { size: 9, color: isUp ? '#26a69a' : '#ef5350' },
+      bgcolor: 'rgba(0,0,0,0.5)', borderpad: 3
+    });
+  }
+
+  Plotly.newPlot('zigzagDemo', [
+    {
+      x: days, y: seed, type: 'scatter', mode: 'lines',
+      line: { color: 'rgba(255,255,255,0.15)', width: 1 },
+      name: '가격', hovertemplate: 'Day %{x}: %{y}<extra></extra>'
+    },
+    {
+      x: pxZZ, y: pyZZ, type: 'scatter', mode: 'lines+markers',
+      line: { color: '#4a9eff', width: 2.5 },
+      marker: { symbol: symZZ, color: colZZ, size: 12,
+                line: { color: 'white', width: 1.5 } },
+      name: `ZigZag (↑${(base*1.2).toFixed(1)}% ↓${(base*0.8).toFixed(1)}%)`,
+      hovertemplate: 'Day %{x}: %{y}<extra></extra>'
+    }
+  ], {
+    paper_bgcolor: 'transparent', plot_bgcolor: '#16213e',
+    font: { color: '#e0e0e0', family: 'Malgun Gothic, sans-serif', size: 11 },
+    xaxis: { title: '영업일', gridcolor: '#2a2a4a', zeroline: false },
+    yaxis: { title: '가격', gridcolor: '#2a2a4a', zeroline: false },
+    legend: { bgcolor: 'rgba(0,0,0,0.3)', bordercolor: '#444', borderwidth: 1 },
+    margin: { l: 55, r: 20, t: 10, b: 50 },
+    annotations,
+    showlegend: true
+  }, { responsive: true, displayModeBar: false });
+})();
+
+// ── 3. 비대칭 계산기 ──
+function updateCalc() {
+  const bs  = parseFloat(document.getElementById('baseSmall').value);
+  const bl  = parseFloat(document.getElementById('baseLarge').value);
+  const up  = parseFloat(document.getElementById('upRatio').value);
+  const dn  = parseFloat(document.getElementById('downRatio').value);
+
+  document.getElementById('vBaseSmall').textContent = bs.toFixed(2) + '%';
+  document.getElementById('vBaseLarge').textContent = bl.toFixed(2) + '%';
+  document.getElementById('vUpRatio').textContent   = up.toFixed(2);
+  document.getElementById('vDownRatio').textContent = dn.toFixed(2);
+
+  const su = bs * up, sd = bs * dn;
+  const lu = bl * up, ld = bl * dn;
+  const asym = ((up - dn) / dn * 100).toFixed(0);
+
+  document.getElementById('asymResult').innerHTML = `
+    <b style="color:#ff7043">Small ZigZag</b><br>
+    &nbsp;&nbsp;상승 반전 임계값: <b style="color:#26a69a">${su.toFixed(2)}%</b>
+      &nbsp;(${bs.toFixed(2)} × ${up.toFixed(2)})<br>
+    &nbsp;&nbsp;하락 반전 임계값: <b style="color:#ef5350">${sd.toFixed(2)}%</b>
+      &nbsp;(${bs.toFixed(2)} × ${dn.toFixed(2)})<br>
+    &nbsp;&nbsp;비대칭 비율: 상승이 하락보다 <b>${asym}%</b> 더 높은 임계값<br>
+    <br>
+    <b style="color:#4a9eff">Large ZigZag</b><br>
+    &nbsp;&nbsp;상승 반전 임계값: <b style="color:#26a69a">${lu.toFixed(2)}%</b>
+      &nbsp;(${bl.toFixed(2)} × ${up.toFixed(2)})<br>
+    &nbsp;&nbsp;하락 반전 임계값: <b style="color:#ef5350">${ld.toFixed(2)}%</b>
+      &nbsp;(${bl.toFixed(2)} × ${dn.toFixed(2)})<br>
+    &nbsp;&nbsp;Large/Small 상승 배율: <b>${(lu/su).toFixed(1)}×</b>
+  `;
+}
+
+['baseSmall','baseLarge','upRatio','downRatio'].forEach(id =>
+  document.getElementById(id).addEventListener('input', updateCalc)
+);
+updateCalc();
+</script>
+</body>
+</html>

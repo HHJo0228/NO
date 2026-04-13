@@ -1,0 +1,499 @@
+{
+  "per_ticker": [
+    {
+      "ticker": "NVDA",
+      "asset_name": "엔비디아",
+      "asset_profile": {
+        "small_cycle_days": 14.6,
+        "small_cycle_std": 10.1,
+        "small_gain_pct": 12.2,
+        "small_gain_std": 9.9,
+        "small_thresholds": {
+          "up": 3.0,
+          "down": 2.93
+        },
+        "large_cycle_days": 290.2,
+        "large_cycle_std": 229.4,
+        "large_gain_pct": 244.1,
+        "large_gain_std": 388.3,
+        "large_thresholds": {
+          "up": 26.3,
+          "down": 25.44
+        },
+        "asymmetry": 0.98,
+        "tags": [
+          "고변동",
+          "단기 사이클 보통",
+          "장기 흐름 불규칙",
+          "큰 흐름 폭발적"
+        ]
+      },
+      "transactions": [
+        {
+          "date": "2022-10-14",
+          "type": "BUY",
+          "price": 11.21,
+          "qty": 100.0,
+          "thresholds": {
+            "small_up": 3.27,
+            "small_down": 3.59,
+            "large_up": 29.26,
+            "large_down": 27.5
+          },
+          "small_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-10-14",
+            "prev_pivot_price": 11.2123,
+            "position_pct": -0.02,
+            "leg_total_pct": 23.22,
+            "progress_pct": 0.1,
+            "progress_label": "early",
+            "days_from_pivot": 0
+          },
+          "large_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-10-14",
+            "prev_pivot_price": 11.2123,
+            "position_pct": -0.02,
+            "leg_total_pct": 1232.3,
+            "progress_pct": 0.0,
+            "progress_label": "early",
+            "days_from_pivot": 0
+          }
+        },
+        {
+          "date": "2023-02-10",
+          "type": "SELL",
+          "price": 21.24,
+          "qty": 100.0,
+          "thresholds": {
+            "small_up": 3.62,
+            "small_down": 3.53,
+            "large_up": 29.72,
+            "large_down": 27.62
+          },
+          "small_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2023-02-10",
+            "prev_pivot_price": 21.2426,
+            "position_pct": -0.01,
+            "leg_total_pct": 8.02,
+            "progress_pct": 0.2,
+            "progress_label": "early",
+            "days_from_pivot": 0
+          },
+          "large_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-10-14",
+            "prev_pivot_price": 11.2123,
+            "position_pct": 89.43,
+            "leg_total_pct": 1232.3,
+            "progress_pct": 7.3,
+            "progress_label": "early",
+            "days_from_pivot": 119
+          }
+        },
+        {
+          "date": "2023-08-18",
+          "type": "BUY",
+          "price": 43.27,
+          "qty": 50.0,
+          "thresholds": {
+            "small_up": 3.28,
+            "small_down": 3.29,
+            "large_up": 28.81,
+            "large_down": 26.8
+          },
+          "small_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2023-08-11",
+            "prev_pivot_price": 40.8231,
+            "position_pct": 5.99,
+            "leg_total_pct": 20.81,
+            "progress_pct": 28.8,
+            "progress_label": "early",
+            "days_from_pivot": 7
+          },
+          "large_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-10-14",
+            "prev_pivot_price": 11.2123,
+            "position_pct": 285.92,
+            "leg_total_pct": 1108.63,
+            "progress_pct": 25.8,
+            "progress_label": "early",
+            "days_from_pivot": 308
+          }
+        },
+        {
+          "date": "2023-11-20",
+          "type": "SELL",
+          "price": 50.37,
+          "qty": 50.0,
+          "thresholds": {
+            "small_up": 3.14,
+            "small_down": 3.27,
+            "large_up": 28.66,
+            "large_down": 25.12
+          },
+          "small_zigzag": {
+            "phase": "falling",
+            "prev_pivot": "peak",
+            "prev_pivot_date": "2023-11-20",
+            "prev_pivot_price": 50.3738,
+            "position_pct": -0.01,
+            "leg_total_pct": 9.72,
+            "progress_pct": 0.1,
+            "progress_label": "early",
+            "days_from_pivot": 0
+          },
+          "large_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-10-14",
+            "prev_pivot_price": 11.2123,
+            "position_pct": 349.24,
+            "leg_total_pct": 1108.63,
+            "progress_pct": 31.5,
+            "progress_label": "mid",
+            "days_from_pivot": 402
+          }
+        },
+        {
+          "date": "2024-04-19",
+          "type": "BUY",
+          "price": 76.16,
+          "qty": 30.0,
+          "thresholds": {
+            "small_up": 3.05,
+            "small_down": 3.12,
+            "large_up": 28.25,
+            "large_down": 24.74
+          },
+          "small_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2024-04-19",
+            "prev_pivot_price": 76.157,
+            "position_pct": 0.0,
+            "leg_total_pct": 8.17,
+            "progress_pct": 0.0,
+            "progress_label": "early",
+            "days_from_pivot": 0
+          },
+          "large_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-10-14",
+            "prev_pivot_price": 11.2123,
+            "position_pct": 579.25,
+            "leg_total_pct": 1108.63,
+            "progress_pct": 52.2,
+            "progress_label": "mid",
+            "days_from_pivot": 553
+          }
+        },
+        {
+          "date": "2024-06-20",
+          "type": "SELL",
+          "price": 130.72,
+          "qty": 30.0,
+          "thresholds": {
+            "small_up": 3.16,
+            "small_down": 3.09,
+            "large_up": 28.13,
+            "large_down": 24.42
+          },
+          "small_zigzag": {
+            "phase": "falling",
+            "prev_pivot": "peak",
+            "prev_pivot_date": "2024-06-18",
+            "prev_pivot_price": 135.5146,
+            "position_pct": -3.54,
+            "leg_total_pct": 12.89,
+            "progress_pct": 27.5,
+            "progress_label": "early",
+            "days_from_pivot": 2
+          },
+          "large_zigzag": {
+            "phase": "falling",
+            "prev_pivot": "peak",
+            "prev_pivot_date": "2024-06-18",
+            "prev_pivot_price": 135.5146,
+            "position_pct": -3.54,
+            "leg_total_pct": 27.05,
+            "progress_pct": 13.1,
+            "progress_label": "early",
+            "days_from_pivot": 2
+          }
+        }
+      ],
+      "pair_summary": [
+        {
+          "buy_date": "2022-10-14",
+          "sell_date": "2023-02-10",
+          "buy_price": 11.21,
+          "sell_price": 21.24,
+          "return_pct": 89.47,
+          "hold_days": 119,
+          "small_buy_label": "rising_early",
+          "small_sell_label": "rising_early",
+          "large_buy_label": "rising_early",
+          "large_sell_label": "rising_early"
+        },
+        {
+          "buy_date": "2023-08-18",
+          "sell_date": "2023-11-20",
+          "buy_price": 43.27,
+          "sell_price": 50.37,
+          "return_pct": 16.41,
+          "hold_days": 94,
+          "small_buy_label": "rising_early",
+          "small_sell_label": "falling_early",
+          "large_buy_label": "rising_early",
+          "large_sell_label": "rising_mid"
+        },
+        {
+          "buy_date": "2024-04-19",
+          "sell_date": "2024-06-20",
+          "buy_price": 76.16,
+          "sell_price": 130.72,
+          "return_pct": 71.64,
+          "hold_days": 62,
+          "small_buy_label": "rising_early",
+          "small_sell_label": "falling_early",
+          "large_buy_label": "rising_mid",
+          "large_sell_label": "falling_early"
+        }
+      ]
+    },
+    {
+      "ticker": "005930.KS",
+      "asset_name": "삼성전자",
+      "asset_profile": {
+        "small_cycle_days": 15.1,
+        "small_cycle_std": 9.9,
+        "small_gain_pct": 6.7,
+        "small_gain_std": 5.9,
+        "small_thresholds": {
+          "up": 1.81,
+          "down": 1.58
+        },
+        "large_cycle_days": 320.0,
+        "large_cycle_std": 339.3,
+        "large_gain_pct": 75.8,
+        "large_gain_std": 47.5,
+        "large_thresholds": {
+          "up": 17.45,
+          "down": 14.04
+        },
+        "asymmetry": 0.87,
+        "tags": [
+          "중변동",
+          "단기 사이클 보통",
+          "장기 흐름 불규칙",
+          "큰 흐름 강함",
+          "상승 속도 빠름"
+        ]
+      },
+      "transactions": [
+        {
+          "date": "2022-09-30",
+          "type": "BUY",
+          "price": 49528.0,
+          "qty": 20.0,
+          "thresholds": {
+            "small_up": 1.14,
+            "small_down": 1.33,
+            "large_up": 12.63,
+            "large_down": 9.24
+          },
+          "small_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-09-28",
+            "prev_pivot_price": 49004.7227,
+            "position_pct": 1.07,
+            "leg_total_pct": 7.16,
+            "progress_pct": 14.9,
+            "progress_label": "early",
+            "days_from_pivot": 2
+          },
+          "large_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-09-28",
+            "prev_pivot_price": 49004.7227,
+            "position_pct": 1.07,
+            "leg_total_pct": 19.72,
+            "progress_pct": 5.4,
+            "progress_label": "early",
+            "days_from_pivot": 2
+          }
+        },
+        {
+          "date": "2023-06-15",
+          "type": "SELL",
+          "price": 67496.0,
+          "qty": 20.0,
+          "thresholds": {
+            "small_up": 1.35,
+            "small_down": 1.4,
+            "large_up": 13.13,
+            "large_down": 9.69
+          },
+          "small_zigzag": {
+            "phase": "falling",
+            "prev_pivot": "peak",
+            "prev_pivot_date": "2023-06-13",
+            "prev_pivot_price": 67967.8125,
+            "position_pct": -0.69,
+            "leg_total_pct": 2.08,
+            "progress_pct": 33.3,
+            "progress_label": "mid",
+            "days_from_pivot": 2
+          },
+          "large_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2022-12-29",
+            "prev_pivot_price": 51902.4844,
+            "position_pct": 30.04,
+            "leg_total_pct": 46.95,
+            "progress_pct": 64.0,
+            "progress_label": "mid",
+            "days_from_pivot": 168
+          }
+        },
+        {
+          "date": "2024-02-05",
+          "type": "BUY",
+          "price": 71193.0,
+          "qty": 15.0,
+          "thresholds": {
+            "small_up": 1.35,
+            "small_down": 1.35,
+            "large_up": 12.7,
+            "large_down": 9.6
+          },
+          "small_zigzag": {
+            "phase": "falling",
+            "prev_pivot": "peak",
+            "prev_pivot_date": "2024-02-02",
+            "prev_pivot_price": 72055.4922,
+            "position_pct": -1.2,
+            "leg_total_pct": 1.46,
+            "progress_pct": 81.8,
+            "progress_label": "late",
+            "days_from_pivot": 3
+          },
+          "large_zigzag": {
+            "phase": "rising",
+            "prev_pivot": "trough",
+            "prev_pivot_date": "2024-01-17",
+            "prev_pivot_price": 68031.1094,
+            "position_pct": 4.65,
+            "leg_total_pct": 20.69,
+            "progress_pct": 22.5,
+            "progress_label": "early",
+            "days_from_pivot": 19
+          }
+        },
+        {
+          "date": "2024-07-10",
+          "type": "SELL",
+          "price": 84888.0,
+          "qty": 15.0,
+          "thresholds": {
+            "small_up": 1.39,
+            "small_down": 1.37,
+            "large_up": 13.28,
+            "large_down": 9.96
+          },
+          "small_zigzag": {
+            "phase": "falling",
+            "prev_pivot": "peak",
+            "prev_pivot_date": "2024-07-10",
+            "prev_pivot_price": 84887.8672,
+            "position_pct": 0.0,
+            "leg_total_pct": 3.87,
+            "progress_pct": 0.0,
+            "progress_label": "early",
+            "days_from_pivot": 0
+          },
+          "large_zigzag": {
+            "phase": "falling",
+            "prev_pivot": "peak",
+            "prev_pivot_date": "2024-07-10",
+            "prev_pivot_price": 84887.8672,
+            "position_pct": 0.0,
+            "leg_total_pct": 42.85,
+            "progress_pct": 0.0,
+            "progress_label": "early",
+            "days_from_pivot": 0
+          }
+        }
+      ],
+      "pair_summary": [
+        {
+          "buy_date": "2022-09-30",
+          "sell_date": "2023-06-15",
+          "buy_price": 49528.0,
+          "sell_price": 67496.0,
+          "return_pct": 36.28,
+          "hold_days": 258,
+          "small_buy_label": "rising_early",
+          "small_sell_label": "falling_mid",
+          "large_buy_label": "rising_early",
+          "large_sell_label": "rising_mid"
+        },
+        {
+          "buy_date": "2024-02-05",
+          "sell_date": "2024-07-10",
+          "buy_price": 71193.0,
+          "sell_price": 84888.0,
+          "return_pct": 19.24,
+          "hold_days": 156,
+          "small_buy_label": "falling_late",
+          "small_sell_label": "falling_early",
+          "large_buy_label": "rising_early",
+          "large_sell_label": "falling_early"
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "total_pairs": 5,
+    "tickers": [
+      "NVDA",
+      "005930.KS"
+    ],
+    "avg_return_pct": 46.61,
+    "std_return_pct": 29.09,
+    "avg_hold_days": 137.8,
+    "small_buy_distribution": {
+      "rising_early": 4,
+      "falling_late": 1
+    },
+    "small_sell_distribution": {
+      "rising_early": 1,
+      "falling_early": 3,
+      "falling_mid": 1
+    },
+    "large_buy_distribution": {
+      "rising_early": 4,
+      "rising_mid": 1
+    },
+    "large_sell_distribution": {
+      "rising_early": 1,
+      "rising_mid": 2,
+      "falling_early": 2
+    }
+  }
+}

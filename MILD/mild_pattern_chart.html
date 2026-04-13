@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>MILD — 매매 위치 패턴 차트</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f1a; --card: #1a1a2e; --border: #2a2a4a;
+    --blue: #4a9eff; --green: #26a69a; --red: #ef5350;
+    --gold: #ffd54f; --text: #e0e0e0; --muted: #666;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text);
+         font-family: 'Malgun Gothic','Segoe UI',sans-serif;
+         padding: 40px 36px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-size: 0.83rem; margin-bottom: 36px; line-height: 1.6; }
+
+  .card { background: var(--card); border: 1px solid var(--border);
+          border-radius: 14px; padding: 24px 26px; }
+
+  .stat-row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+  .stat { background: rgba(255,255,255,.04); border-radius: 8px;
+          padding: 12px 18px; text-align: center; flex: 1; min-width: 110px; }
+  .stat-label { font-size: 0.68rem; color: var(--muted); margin-bottom: 5px;
+                text-transform: uppercase; letter-spacing: .05em; }
+  .stat-value { font-size: 1.25rem; font-weight: 700; }
+  .stat-sub   { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+
+  .legend-row { display: flex; gap: 22px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.78rem; color: var(--muted); }
+  .legend-sym { font-size: 1rem; line-height: 1; }
+
+  .insight { background: rgba(74,158,255,.06); border: 1px solid rgba(74,158,255,.18);
+             border-radius: 8px; padding: 14px 18px; margin-top: 18px;
+             font-size: 0.83rem; line-height: 1.75; color: #c0d8ff; }
+  .insight-placeholder { color: #555; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>매매 위치 패턴 — 무차원 ZigZag 뷰</h1>
+<p class="subtitle">
+  ZigZag 구간 내 진행률(0–100%)로 정규화 · 종목·시기 무관 비교 가능<br>
+  단기/장기 파동 평균을 합산하여 대표 매수·매도 위치를 하나씩 표시합니다
+</p>
+
+<div class="card">
+  <div id="patternChart" style="height:320px"></div>
+  <div class="legend-row">
+    <div class="legend-item"><span class="legend-sym" style="color:#26a69a">▲</span>평균 매수 위치</div>
+    <div class="legend-item"><span class="legend-sym" style="color:#ef5350">▼</span>평균 매도 위치</div>
+    <div class="legend-item" style="color:#555">← 상승 구간 (0–80%) · 하락 구간 (80–100%) →</div>
+  </div>
+  <div class="stat-row" id="statRow"></div>
+  <div class="insight insight-placeholder" id="insight">AI 분석 준비 중 — Gemini API 연동 후 자동으로 채워집니다.</div>
+</div>
+
+<script>
+// ── 데이터 ──
+const RAW = {"per_ticker":[{"ticker":"NVDA","asset_name":"엔비디아","transactions":[{"date":"2022-10-14","type":"BUY","price":11.21,"qty":100.0,"thresholds":{"small_up":3.58,"small_down":3.86,"large_up":29.7,"large_down":29.36},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":-0.02,"leg_total_pct":23.22,"progress_pct":0.1,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":-0.02,"leg_total_pct":1232.3,"progress_pct":0.0,"progress_label":"early","days_from_pivot":0}},{"date":"2023-02-10","type":"SELL","price":21.24,"qty":100.0,"thresholds":{"small_up":3.79,"small_down":3.69,"large_up":30.0,"large_down":28.38},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2023-02-10","prev_pivot_price":21.2426,"position_pct":-0.01,"leg_total_pct":8.02,"progress_pct":0.2,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":89.43,"leg_total_pct":1232.3,"progress_pct":7.3,"progress_label":"early","days_from_pivot":119}},{"date":"2023-08-18","type":"BUY","price":43.27,"qty":50.0,"thresholds":{"small_up":3.27,"small_down":3.12,"large_up":28.64,"large_down":25.11},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2023-08-11","prev_pivot_price":40.8231,"position_pct":5.99,"leg_total_pct":20.81,"progress_pct":28.8,"progress_label":"early","days_from_pivot":7},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":285.92,"leg_total_pct":1108.63,"progress_pct":25.8,"progress_label":"early","days_from_pivot":308}},{"date":"2023-11-20","type":"SELL","price":50.37,"qty":50.0,"thresholds":{"small_up":2.96,"small_down":3.05,"large_up":27.97,"large_down":24.14},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2023-11-20","prev_pivot_price":50.3738,"position_pct":-0.01,"leg_total_pct":9.72,"progress_pct":0.1,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":349.24,"leg_total_pct":1108.63,"progress_pct":31.5,"progress_label":"mid","days_from_pivot":402}},{"date":"2024-04-19","type":"BUY","price":76.16,"qty":30.0,"thresholds":{"small_up":2.77,"small_down":2.85,"large_up":26.8,"large_down":23.53},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2024-04-19","prev_pivot_price":76.157,"position_pct":0.0,"leg_total_pct":8.17,"progress_pct":0.0,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":579.25,"leg_total_pct":1108.63,"progress_pct":52.2,"progress_label":"mid","days_from_pivot":553}},{"date":"2024-06-20","type":"SELL","price":130.72,"qty":30.0,"thresholds":{"small_up":3.16,"small_down":2.83,"large_up":27.89,"large_down":22.67},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-06-18","prev_pivot_price":135.5146,"position_pct":-3.54,"leg_total_pct":12.89,"progress_pct":27.5,"progress_label":"early","days_from_pivot":2},"large_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-06-18","prev_pivot_price":135.5146,"position_pct":-3.54,"leg_total_pct":27.05,"progress_pct":13.1,"progress_label":"early","days_from_pivot":2}}],"pair_summary":[]},{"ticker":"005930.KS","asset_name":"삼성전자","transactions":[{"date":"2022-09-30","type":"BUY","price":49528.0,"qty":20.0,"thresholds":{"small_up":1.16,"small_down":1.4,"large_up":12.72,"large_down":9.23},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-09-28","prev_pivot_price":49004.7266,"position_pct":1.07,"leg_total_pct":7.16,"progress_pct":14.9,"progress_label":"early","days_from_pivot":2},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-09-28","prev_pivot_price":49004.7266,"position_pct":1.07,"leg_total_pct":19.72,"progress_pct":5.4,"progress_label":"early","days_from_pivot":2}},{"date":"2023-06-15","type":"SELL","price":67496.0,"qty":20.0,"thresholds":{"small_up":1.38,"small_down":1.42,"large_up":13.27,"large_down":9.85},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2023-06-13","prev_pivot_price":67967.8125,"position_pct":-0.69,"leg_total_pct":2.08,"progress_pct":33.3,"progress_label":"mid","days_from_pivot":2},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-12-29","prev_pivot_price":51902.4883,"position_pct":30.04,"leg_total_pct":46.95,"progress_pct":64.0,"progress_label":"mid","days_from_pivot":168}},{"date":"2024-02-05","type":"BUY","price":71193.0,"qty":15.0,"thresholds":{"small_up":1.38,"small_down":1.37,"large_up":12.64,"large_down":9.51},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-02-02","prev_pivot_price":72055.4844,"position_pct":-1.2,"leg_total_pct":1.46,"progress_pct":81.8,"progress_label":"late","days_from_pivot":3},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2024-01-17","prev_pivot_price":68031.1172,"position_pct":4.65,"leg_total_pct":20.69,"progress_pct":22.5,"progress_label":"early","days_from_pivot":19}},{"date":"2024-07-10","type":"SELL","price":84888.0,"qty":15.0,"thresholds":{"small_up":1.53,"small_down":1.4,"large_up":14.01,"large_down":10.41},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-07-10","prev_pivot_price":84887.8594,"position_pct":0.0,"leg_total_pct":3.87,"progress_pct":0.0,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-07-10","prev_pivot_price":84887.8594,"position_pct":0.0,"leg_total_pct":42.85,"progress_pct":0.0,"progress_label":"early","days_from_pivot":0}}],"pair_summary":[]}]};
+
+// ── 전체 거래 추출 ──
+const all = RAW.per_ticker.flatMap(t =>
+  t.transactions.map(tx => ({ ...tx, ticker: t.ticker, asset_name: t.asset_name }))
+);
+
+// ══════════════════════════════════════════════════════════
+// 적응형 ZigZag 템플릿 생성
+// ──────────────────────────────────────────────────────────
+// 구조:
+//   Large 상승: x 0→80  (Large progress 0→100%)
+//   Large 하락: x 80→100 (Large falling progress 0→100%)
+//   상승 구간에 Small 파동 N_SMALL개가 균등 배치됨
+//
+// 마커 위치 결정 방법:
+//   1. Large progress → x 좌표 확정 (Large 기준)
+//   2. 그 x가 속한 Small 파동 번호·위상 계산
+//   3. Small progress도 만족하도록 해당 Small 파동의 진폭(amplitude) 역산
+//   4. 역산된 진폭으로 템플릿 재구성 → 마커 y좌표가 두 조건을 동시에 만족
+// ══════════════════════════════════════════════════════════
+
+const N_SMALL = 6;          // 상승 구간 small 파동 수
+const UP_X    = 80;         // 상승 구간 x 범위 (0–80)
+const SMALL_W = UP_X / N_SMALL;  // 작은 산 하나의 x 너비 = 13.33
+
+// Large 추세선: x=0 → y=Y_TROUGH, x=UP_X → y=Y_PEAK
+const Y_TROUGH = 5;
+const Y_PEAK   = 88;
+const Y_END    = 10;   // Large 하락 끝점 y
+
+// Large 추세 y (x 기준)
+function largeTrendY(x) {
+  if (x <= UP_X) return Y_TROUGH + (x / UP_X) * (Y_PEAK - Y_TROUGH);
+  return Y_PEAK  + ((x - UP_X) / (100 - UP_X)) * (Y_END - Y_PEAK);
+}
+
+// ── 적응형 템플릿 생성 ──────────────────────────────────
+// markers: [{largePhase, largePct, smallPhase, smallPct, color, symbol, label}, ...]
+// 각 마커에 대해 Small 파동 진폭을 역산하고, 그 결과로 통일된 템플릿 포인트 배열 반환
+function buildAdaptiveTemplate(markers) {
+  // 1. 각 마커의 x 좌표 (Large 기준)
+  const mkrs = markers.map(m => {
+    const p = Math.min(Math.max(m.largePct, 0), 100);
+    const x = m.largePhase === 'rising' ? (p / 100) * UP_X
+                                        : UP_X + (p / 100) * (100 - UP_X);
+    return { ...m, x };
+  });
+
+  // 2. 각 small 파동 진폭 (기본값 설정)
+  //    진폭 = 해당 파동 추세선 기준 위아래 폭 (y units)
+  const DEFAULT_AMP = 6;
+  const amps = Array(N_SMALL).fill(DEFAULT_AMP);
+
+  // 3. 상승 구간 마커에 대해 Small 진폭 역산
+  mkrs.forEach(m => {
+    if (m.largePhase !== 'rising') return;  // 하락 구간은 고정
+
+    const waveIdx = Math.min(Math.floor(m.x / SMALL_W), N_SMALL - 1);
+    const waveStartX = waveIdx * SMALL_W;
+    const waveMidX   = waveStartX + SMALL_W / 2;   // small peak x
+    const waveEndX   = waveStartX + SMALL_W;        // small trough x
+
+    // 이 마커의 Small leg를 파악
+    const posInWave = m.x - waveStartX;  // 0 ~ SMALL_W
+    const halfW = SMALL_W / 2;
+
+    // small phase 'rising': 파동 저점(waveStartX) → 고점(waveMidX)
+    //   progress = posInWave / halfW * 100 이 되어야 함
+    //   → amp는 실제로 y값에 영향을 주므로, 역산 필요
+    // small phase 'falling': 고점(waveMidX) → 저점(waveEndX)
+    //   progress = (posInWave - halfW) / halfW * 100
+
+    const sp = Math.min(Math.max(m.smallPct, 0), 100) / 100;
+
+    if (m.smallPhase === 'rising') {
+      // 현재 위치 x = waveStartX + sp * halfW
+      // → sp 로부터 x가 결정되므로 진폭은 별도 역산 불필요,
+      //   대신 x를 재보정하여 Small progress를 정확히 반영
+      m.x = waveStartX + sp * halfW;
+    } else {
+      // small falling: x = waveMidX + sp * halfW
+      m.x = waveMidX + sp * halfW;
+    }
+
+    // 진폭 역산: Large 추세선에서 마커 y까지의 거리를 Small 진폭으로 설정
+    // small rising 구간이면 마커는 추세선 위, falling이면 추세선 아래
+    // 진폭 = (마커 y 기준) Small peak에서 추세선까지의 거리
+    // 여기서는 Large progress와 Small progress를 x좌표로 통합했으므로
+    // 진폭은 시각적 높이만 결정 → waveIdx의 amp를 추세선 대비 표준편차로 조정
+    const trendAtMid = largeTrendY(waveStartX + halfW);
+    // Small peak는 추세선보다 amp만큼 높음
+    // 역산: 마커의 y위치가 추세선+amp(rising) 또는 추세선-amp(falling)가 되도록
+    // → amp는 고정하되 Large 추세 높이에 비례하여 스케일
+    amps[waveIdx] = Math.max(DEFAULT_AMP, trendAtMid * 0.08);
+  });
+
+  // 4. 템플릿 포인트 생성 (상승 구간)
+  const pts = [[0, largeTrendY(0)]];  // Large 저점
+
+  for (let i = 0; i < N_SMALL; i++) {
+    const x0   = i * SMALL_W;
+    const xMid = x0 + SMALL_W / 2;
+    const x1   = x0 + SMALL_W;
+    const amp  = amps[i];
+
+    const yBase0   = largeTrendY(x0);
+    const yBaseMid = largeTrendY(xMid);
+    const yBase1   = largeTrendY(x1);
+
+    pts.push([xMid, yBaseMid + amp]);   // small peak
+    pts.push([x1,   yBase1   - amp]);   // small trough
+  }
+
+  // Large 고점 (마지막 trough 이후)
+  pts.push([UP_X, Y_PEAK]);
+
+  // 하락 구간 (Small 2파동 고정)
+  const dW = (100 - UP_X) / 2;
+  const yD0 = largeTrendY(UP_X + dW);
+  const yD1 = largeTrendY(UP_X + dW * 2);
+  pts.push([UP_X + dW * 0.5, yD0 + 5]);   // small trough
+  pts.push([UP_X + dW,       yD0 - 5]);    // small peak
+  pts.push([UP_X + dW * 1.5, yD1 + 5]);   // small trough
+  pts.push([100,              yD1 - 5]);   // 끝
+
+  // 5. 마커 y 좌표 계산 (보정된 x로 템플릿 보간)
+  const tmplXa = pts.map(p => p[0]);
+  const tmplYa = pts.map(p => p[1]);
+
+  function interpY(x) {
+    for (let i = 0; i < tmplXa.length - 1; i++) {
+      if (x >= tmplXa[i] && x <= tmplXa[i + 1]) {
+        const t = (x - tmplXa[i]) / (tmplXa[i + 1] - tmplXa[i]);
+        return tmplYa[i] + t * (tmplYa[i + 1] - tmplYa[i]);
+      }
+    }
+    return tmplYa[tmplYa.length - 1];
+  }
+
+  mkrs.forEach(m => { m.y = interpY(m.x); });
+
+  return { tmplX: tmplXa, tmplY: tmplYa, markers: mkrs };
+}
+
+// ── 구간 해석 레이블 ──
+function conceptLabel(phase, progress) {
+  if (phase === 'rising') {
+    if (progress < 20) return '저점 부근 (무릎)';
+    if (progress < 45) return '상승 초입';
+    if (progress < 70) return '상승 중반';
+    if (progress < 88) return '고점 부근 (어깨)';
+    return '고점';
+  } else {
+    if (progress < 20) return '고점 직후';
+    if (progress < 50) return '하락 초입';
+    if (progress < 80) return '하락 중반';
+    return '저점 부근';
+  }
+}
+
+// ── 스케일별 평균 진행률 계산 ──
+// x좌표(마커 위치)는 Large 기준, 레이블에 Small도 함께 표시
+function calcAvg(txType) {
+  const txs = all.filter(tx => tx.type === txType);
+  if (!txs.length) return null;
+
+  function scaleStats(key) {
+    const vals   = txs.map(tx => Math.min(tx[key]?.progress_pct ?? 0, 100));
+    const phases = txs.map(tx => tx[key]?.phase ?? 'rising');
+    const avg    = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const std    = Math.sqrt(vals.reduce((a, b) => a + (b - avg) ** 2, 0) / vals.length);
+    const risingCount = phases.filter(p => p === 'rising').length;
+    return {
+      avg, std,
+      dominantPhase: risingCount >= vals.length / 2 ? 'rising' : 'falling',
+    };
+  }
+
+  const small = scaleStats('small_zigzag');
+  const large = scaleStats('large_zigzag');
+
+  return { small, large, n: txs.length };
+}
+
+// ── 차트 렌더 ──
+function renderChart(buyStats, sellStats) {
+  const BUY_COLOR  = '#26a69a';
+  const SELL_COLOR = '#ef5350';
+
+  // 적응형 템플릿 생성 — 매수/매도 위치에서 Small+Large 동시 만족
+  const { tmplX, tmplY, markers } = buildAdaptiveTemplate([
+    {
+      largePhase: buyStats.large.dominantPhase,
+      largePct:   buyStats.large.avg,
+      smallPhase: buyStats.small.dominantPhase,
+      smallPct:   buyStats.small.avg,
+      color: BUY_COLOR, symbol: 'triangle-up',
+      isBuy: true,
+    },
+    {
+      largePhase: sellStats.large.dominantPhase,
+      largePct:   sellStats.large.avg,
+      smallPhase: sellStats.small.dominantPhase,
+      smallPct:   sellStats.small.avg,
+      color: SELL_COLOR, symbol: 'triangle-down',
+      isBuy: false,
+    },
+  ]);
+
+  const [buy, sell] = markers;
+
+  const traces = [
+    // 배경 음영: 상승 구간
+    {
+      x: [0, UP_X, UP_X, 0], y: [0, 0, 100, 100],
+      fill: 'toself', type: 'scatter', mode: 'none',
+      fillcolor: 'rgba(38,166,154,0.05)', hoverinfo: 'none', showlegend: false,
+    },
+    // 배경 음영: 하락 구간
+    {
+      x: [UP_X, 100, 100, UP_X], y: [0, 0, 100, 100],
+      fill: 'toself', type: 'scatter', mode: 'none',
+      fillcolor: 'rgba(239,83,80,0.05)', hoverinfo: 'none', showlegend: false,
+    },
+    // 적응형 ZigZag 템플릿
+    {
+      x: tmplX, y: tmplY,
+      type: 'scatter', mode: 'lines',
+      line: { color: 'rgba(255,255,255,0.2)', width: 1.8 },
+      hoverinfo: 'none', showlegend: false,
+    },
+    // 매수 수직선
+    {
+      x: [buy.x, buy.x], y: [0, 96],
+      type: 'scatter', mode: 'lines',
+      line: { color: BUY_COLOR, width: 1, dash: 'dot' },
+      hoverinfo: 'none', showlegend: false,
+    },
+    // 매도 수직선
+    {
+      x: [sell.x, sell.x], y: [0, 96],
+      type: 'scatter', mode: 'lines',
+      line: { color: SELL_COLOR, width: 1, dash: 'dot' },
+      hoverinfo: 'none', showlegend: false,
+    },
+    // 매수 마커 — 글로우
+    {
+      x: [buy.x], y: [buy.y],
+      type: 'scatter', mode: 'markers',
+      marker: { size: 32, color: BUY_COLOR, opacity: 0.15, symbol: 'circle' },
+      hoverinfo: 'none', showlegend: false,
+    },
+    // 매수 마커
+    {
+      x: [buy.x], y: [buy.y],
+      type: 'scatter', mode: 'markers',
+      marker: { size: 22, symbol: 'triangle-up', color: BUY_COLOR,
+                line: { color: 'white', width: 1.5 } },
+      hovertemplate:
+        `<b>평균 매수</b><br>` +
+        `단기 ${buyStats.small.avg.toFixed(1)}% · ${conceptLabel(buyStats.small.dominantPhase, buyStats.small.avg)}<br>` +
+        `장기 ${buyStats.large.avg.toFixed(1)}% · ${conceptLabel(buyStats.large.dominantPhase, buyStats.large.avg)}<br>` +
+        `거래 ${buyStats.n}건<extra></extra>`,
+      showlegend: false,
+    },
+    // 매도 마커 — 글로우
+    {
+      x: [sell.x], y: [sell.y],
+      type: 'scatter', mode: 'markers',
+      marker: { size: 32, color: SELL_COLOR, opacity: 0.15, symbol: 'circle' },
+      hoverinfo: 'none', showlegend: false,
+    },
+    // 매도 마커
+    {
+      x: [sell.x], y: [sell.y],
+      type: 'scatter', mode: 'markers',
+      marker: { size: 22, symbol: 'triangle-down', color: SELL_COLOR,
+                line: { color: 'white', width: 1.5 } },
+      hovertemplate:
+        `<b>평균 매도</b><br>` +
+        `단기 ${sellStats.small.avg.toFixed(1)}% · ${conceptLabel(sellStats.small.dominantPhase, sellStats.small.avg)}<br>` +
+        `장기 ${sellStats.large.avg.toFixed(1)}% · ${conceptLabel(sellStats.large.dominantPhase, sellStats.large.avg)}<br>` +
+        `거래 ${sellStats.n}건<extra></extra>`,
+      showlegend: false,
+    },
+  ];
+
+  const annotations = [
+    { x: 40,   y: 97, text: '← 상승 구간 →', showarrow: false,
+      font: { size: 9, color: 'rgba(38,166,154,0.55)' }, xanchor: 'center' },
+    { x: 90,   y: 97, text: '하락',           showarrow: false,
+      font: { size: 9, color: 'rgba(239,83,80,0.55)' },  xanchor: 'center' },
+    { x: 2,    y: 2,  text: '저점', showarrow: false, font: { size: 8, color: '#555' } },
+    { x: 40,   y: 2,  text: '중반', showarrow: false, font: { size: 8, color: '#555' } },
+    { x: 78,   y: 2,  text: '고점', showarrow: false, font: { size: 8, color: '#555' } },
+    {
+      x: buy.x, y: Math.min(buy.y + 14, 96),
+      text: `▲ 매수<br>단기 ${buyStats.small.avg.toFixed(0)}% / 장기 ${buyStats.large.avg.toFixed(0)}%`,
+      showarrow: false, xanchor: 'center',
+      font: { size: 9.5, color: BUY_COLOR },
+      bgcolor: 'rgba(15,15,26,0.82)', bordercolor: BUY_COLOR, borderwidth: 1, borderpad: 4,
+    },
+    {
+      x: sell.x, y: Math.min(sell.y + 14, 96),
+      text: `▼ 매도<br>단기 ${sellStats.small.avg.toFixed(0)}% / 장기 ${sellStats.large.avg.toFixed(0)}%`,
+      showarrow: false, xanchor: 'center',
+      font: { size: 9.5, color: SELL_COLOR },
+      bgcolor: 'rgba(15,15,26,0.82)', bordercolor: SELL_COLOR, borderwidth: 1, borderpad: 4,
+    },
+  ];
+
+  Plotly.newPlot('patternChart', traces, {
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'rgba(255,255,255,0.02)',
+    font: { color: '#e0e0e0', family: 'Malgun Gothic,sans-serif', size: 10 },
+    xaxis: { range: [0, 100], showgrid: false, zeroline: false, showticklabels: false, fixedrange: true },
+    yaxis: { range: [-5, 108], showgrid: false, zeroline: false, showticklabels: false, fixedrange: true },
+    margin: { l: 10, r: 10, t: 10, b: 10 },
+    annotations,
+    hovermode: 'closest',
+  }, { responsive: true, displayModeBar: false });
+}
+
+// ── 통계 카드 렌더 ──
+function renderStats(buyStats, sellStats) {
+  const el = document.getElementById('statRow');
+  el.innerHTML = `
+    <div class="stat">
+      <div class="stat-label">매수 — 단기</div>
+      <div class="stat-value" style="color:#26a69a">${buyStats.small.avg.toFixed(1)}%</div>
+      <div class="stat-sub">${conceptLabel(buyStats.small.dominantPhase, buyStats.small.avg)}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">매수 — 장기</div>
+      <div class="stat-value" style="color:#26a69a">${buyStats.large.avg.toFixed(1)}%</div>
+      <div class="stat-sub">${conceptLabel(buyStats.large.dominantPhase, buyStats.large.avg)}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">매도 — 단기</div>
+      <div class="stat-value" style="color:#ef5350">${sellStats.small.avg.toFixed(1)}%</div>
+      <div class="stat-sub">${conceptLabel(sellStats.small.dominantPhase, sellStats.small.avg)}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">매도 — 장기</div>
+      <div class="stat-value" style="color:#ef5350">${sellStats.large.avg.toFixed(1)}%</div>
+      <div class="stat-sub">${conceptLabel(sellStats.large.dominantPhase, sellStats.large.avg)}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">총 거래</div>
+      <div class="stat-value">${buyStats.n + sellStats.n}건</div>
+      <div class="stat-sub">매수 ${buyStats.n} · 매도 ${sellStats.n}</div>
+    </div>`;
+}
+
+// ── Insight 영역 ──
+// Gemini API 연동 후 AI 생성 텍스트로 채울 예정.
+// 호출 측에서 document.getElementById('insight').innerHTML = aiResponse; 로 주입.
+
+// ── 실행 ──
+const buyStats  = calcAvg('BUY');
+const sellStats = calcAvg('SELL');
+
+if (buyStats && sellStats) {
+  renderChart(buyStats, sellStats);
+  renderStats(buyStats, sellStats);
+}
+</script>
+</body>
+</html>

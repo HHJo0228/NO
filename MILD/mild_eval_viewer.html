@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>MILD — 매매 타이밍 평가 뷰어</title>
+<style>
+  :root {
+    --bg: #0f0f1a; --card: #1a1a2e; --border: #2a2a4a;
+    --blue: #4a9eff; --orange: #ff7043; --green: #26a69a;
+    --red: #ef5350; --gold: #ffd54f; --purple: #ab47bc;
+    --text: #e0e0e0; --muted: #888;
+    --buy: #26a69a; --sell: #ef5350;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text);
+         font-family: 'Malgun Gothic','Segoe UI',sans-serif; padding: 28px 24px; }
+
+  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 32px; }
+
+  .section-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted);
+    border-left: 3px solid var(--blue); padding-left: 10px;
+    margin: 36px 0 14px;
+  }
+
+  /* ── 집계 카드 ── */
+  .kpi-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+  .kpi { background: var(--card); border: 1px solid var(--border);
+         border-radius: 10px; padding: 16px 22px; min-width: 140px; }
+  .kpi-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px;
+               text-transform: uppercase; letter-spacing: .06em; }
+  .kpi-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+
+  /* ── 태그 ── */
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 4px;
+         font-size: 0.72rem; font-weight: 700; }
+  .tag-buy   { background: rgba(38,166,154,.18); color: var(--buy); }
+  .tag-sell  { background: rgba(239,83,80,.18);  color: var(--sell); }
+  .tag-early { background: rgba(74,158,255,.15); color: var(--blue); }
+  .tag-mid   { background: rgba(255,213,79,.15); color: var(--gold); }
+  .tag-late  { background: rgba(239,83,80,.15);  color: var(--red); }
+  .tag-rising  { background: rgba(38,166,154,.12); color: var(--green); }
+  .tag-falling { background: rgba(239,83,80,.12);  color: var(--red); }
+
+  /* ── 종목 탭 ── */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 7px 18px; border-radius: 6px; cursor: pointer;
+         border: 1px solid var(--border); background: var(--card);
+         font-size: 0.85rem; color: var(--muted); transition: all .15s; }
+  .tab.active, .tab:hover { border-color: var(--blue); color: var(--blue);
+                             background: rgba(74,158,255,.08); }
+  .ticker-panel { display: none; }
+  .ticker-panel.active { display: block; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── 종목 패널 ── */
+  .ticker-section {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px 28px;
+  }
+
+  /* ── 종목 한 줄 내러티브 ── */
+  .asset-narrative {
+    font-size: 0.95rem; line-height: 1.7; color: var(--text);
+    margin-bottom: 28px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── 매수/매도 스코어 ── */
+  .score-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  .score-block { }
+  .score-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+  .score-dots {
+    display: flex; gap: 6px; align-items: center; margin-bottom: 10px;
+  }
+  .dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+    cursor: default;
+  }
+  .dot-good { background: rgba(38,166,154,.25); color: #4db6ac;
+              border: 1.5px solid rgba(38,166,154,.5); }
+  .dot-warn { background: rgba(255,213,79,.15); color: #ffd54f;
+              border: 1.5px solid rgba(255,213,79,.4); }
+  .dot-bad  { background: rgba(239,83,80,.15);  color: #ef5350;
+              border: 1.5px solid rgba(239,83,80,.4); }
+  .score-summary {
+    font-size: 0.82rem; color: var(--muted); line-height: 1.5;
+  }
+  .score-summary strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<h1>MILD — 매매 타이밍 평가 뷰어</h1>
+<p class="subtitle">mild_eval_result.json | 샘플 데이터 (NVDA, 삼성전자)</p>
+
+<!-- ── 종목별 탭 ── -->
+<div class="section-label">종목별 분석</div>
+<div class="tabs" id="tabs"></div>
+<div id="panels"></div>
+
+<script>
+// ── 데이터 ──
+const DATA = {"per_ticker":[{"ticker":"NVDA","asset_name":"엔비디아","asset_profile":{"small_cycle_days":14.6,"small_cycle_std":10.1,"small_gain_pct":12.2,"small_gain_std":9.9,"small_thresholds":{"up":3.0,"down":2.93},"large_cycle_days":290.2,"large_cycle_std":229.4,"large_gain_pct":244.1,"large_gain_std":388.3,"large_thresholds":{"up":26.3,"down":25.44},"asymmetry":0.98,"tags":["고변동","단기 사이클 보통","장기 흐름 불규칙","큰 흐름 폭발적"]},"transactions":[{"date":"2022-10-14","type":"BUY","price":11.21,"qty":100.0,"thresholds":{"small_up":3.27,"small_down":3.59,"large_up":29.26,"large_down":27.5},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":-0.02,"leg_total_pct":23.22,"progress_pct":0.1,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":-0.02,"leg_total_pct":1232.3,"progress_pct":0.0,"progress_label":"early","days_from_pivot":0}},{"date":"2023-02-10","type":"SELL","price":21.24,"qty":100.0,"thresholds":{"small_up":3.62,"small_down":3.53,"large_up":29.72,"large_down":27.62},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2023-02-10","prev_pivot_price":21.2426,"position_pct":-0.01,"leg_total_pct":8.02,"progress_pct":0.2,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":89.43,"leg_total_pct":1232.3,"progress_pct":7.3,"progress_label":"early","days_from_pivot":119}},{"date":"2023-08-18","type":"BUY","price":43.27,"qty":50.0,"thresholds":{"small_up":3.28,"small_down":3.29,"large_up":28.81,"large_down":26.8},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2023-08-11","prev_pivot_price":40.8231,"position_pct":5.99,"leg_total_pct":20.81,"progress_pct":28.8,"progress_label":"early","days_from_pivot":7},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":285.92,"leg_total_pct":1108.63,"progress_pct":25.8,"progress_label":"early","days_from_pivot":308}},{"date":"2023-11-20","type":"SELL","price":50.37,"qty":50.0,"thresholds":{"small_up":3.14,"small_down":3.27,"large_up":28.66,"large_down":25.12},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2023-11-20","prev_pivot_price":50.3738,"position_pct":-0.01,"leg_total_pct":9.72,"progress_pct":0.1,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":349.24,"leg_total_pct":1108.63,"progress_pct":31.5,"progress_label":"mid","days_from_pivot":402}},{"date":"2024-04-19","type":"BUY","price":76.16,"qty":30.0,"thresholds":{"small_up":3.05,"small_down":3.12,"large_up":28.25,"large_down":24.74},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2024-04-19","prev_pivot_price":76.157,"position_pct":0.0,"leg_total_pct":8.17,"progress_pct":0.0,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-10-14","prev_pivot_price":11.2123,"position_pct":579.25,"leg_total_pct":1108.63,"progress_pct":52.2,"progress_label":"mid","days_from_pivot":553}},{"date":"2024-06-20","type":"SELL","price":130.72,"qty":30.0,"thresholds":{"small_up":3.16,"small_down":3.09,"large_up":28.13,"large_down":24.42},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-06-18","prev_pivot_price":135.5146,"position_pct":-3.54,"leg_total_pct":12.89,"progress_pct":27.5,"progress_label":"early","days_from_pivot":2},"large_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-06-18","prev_pivot_price":135.5146,"position_pct":-3.54,"leg_total_pct":27.05,"progress_pct":13.1,"progress_label":"early","days_from_pivot":2}}],"pair_summary":[{"buy_date":"2022-10-14","sell_date":"2023-02-10","buy_price":11.21,"sell_price":21.24,"return_pct":89.47,"hold_days":119,"small_buy_label":"rising_early","small_sell_label":"rising_early","large_buy_label":"rising_early","large_sell_label":"rising_early"},{"buy_date":"2023-08-18","sell_date":"2023-11-20","buy_price":43.27,"sell_price":50.37,"return_pct":16.41,"hold_days":94,"small_buy_label":"rising_early","small_sell_label":"falling_early","large_buy_label":"rising_early","large_sell_label":"rising_mid"},{"buy_date":"2024-04-19","sell_date":"2024-06-20","buy_price":76.16,"sell_price":130.72,"return_pct":71.64,"hold_days":62,"small_buy_label":"rising_early","small_sell_label":"falling_early","large_buy_label":"rising_mid","large_sell_label":"falling_early"}]},{"ticker":"005930.KS","asset_name":"삼성전자","asset_profile":{"small_cycle_days":15.1,"small_cycle_std":9.9,"small_gain_pct":6.7,"small_gain_std":5.9,"small_thresholds":{"up":1.81,"down":1.58},"large_cycle_days":320.0,"large_cycle_std":339.3,"large_gain_pct":75.8,"large_gain_std":47.5,"large_thresholds":{"up":17.45,"down":14.04},"asymmetry":0.87,"tags":["중변동","단기 사이클 보통","장기 흐름 불규칙","큰 흐름 강함","상승 속도 빠름"]},"transactions":[{"date":"2022-09-30","type":"BUY","price":49528.0,"qty":20.0,"thresholds":{"small_up":1.14,"small_down":1.33,"large_up":12.63,"large_down":9.24},"small_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-09-28","prev_pivot_price":49004.7227,"position_pct":1.07,"leg_total_pct":7.16,"progress_pct":14.9,"progress_label":"early","days_from_pivot":2},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-09-28","prev_pivot_price":49004.7227,"position_pct":1.07,"leg_total_pct":19.72,"progress_pct":5.4,"progress_label":"early","days_from_pivot":2}},{"date":"2023-06-15","type":"SELL","price":67496.0,"qty":20.0,"thresholds":{"small_up":1.35,"small_down":1.4,"large_up":13.13,"large_down":9.69},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2023-06-13","prev_pivot_price":67967.8125,"position_pct":-0.69,"leg_total_pct":2.08,"progress_pct":33.3,"progress_label":"mid","days_from_pivot":2},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2022-12-29","prev_pivot_price":51902.4844,"position_pct":30.04,"leg_total_pct":46.95,"progress_pct":64.0,"progress_label":"mid","days_from_pivot":168}},{"date":"2024-02-05","type":"BUY","price":71193.0,"qty":15.0,"thresholds":{"small_up":1.35,"small_down":1.35,"large_up":12.7,"large_down":9.6},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-02-02","prev_pivot_price":72055.4922,"position_pct":-1.2,"leg_total_pct":1.46,"progress_pct":81.8,"progress_label":"late","days_from_pivot":3},"large_zigzag":{"phase":"rising","prev_pivot":"trough","prev_pivot_date":"2024-01-17","prev_pivot_price":68031.1094,"position_pct":4.65,"leg_total_pct":20.69,"progress_pct":22.5,"progress_label":"early","days_from_pivot":19}},{"date":"2024-07-10","type":"SELL","price":84888.0,"qty":15.0,"thresholds":{"small_up":1.39,"small_down":1.37,"large_up":13.28,"large_down":9.96},"small_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-07-10","prev_pivot_price":84887.8672,"position_pct":0.0,"leg_total_pct":3.87,"progress_pct":0.0,"progress_label":"early","days_from_pivot":0},"large_zigzag":{"phase":"falling","prev_pivot":"peak","prev_pivot_date":"2024-07-10","prev_pivot_price":84887.8672,"position_pct":0.0,"leg_total_pct":42.85,"progress_pct":0.0,"progress_label":"early","days_from_pivot":0}}],"pair_summary":[{"buy_date":"2022-09-30","sell_date":"2023-06-15","buy_price":49528.0,"sell_price":67496.0,"return_pct":36.28,"hold_days":258,"small_buy_label":"rising_early","small_sell_label":"falling_mid","large_buy_label":"rising_early","large_sell_label":"rising_mid"},{"buy_date":"2024-02-05","sell_date":"2024-07-10","buy_price":71193.0,"sell_price":84888.0,"return_pct":19.24,"hold_days":156,"small_buy_label":"falling_late","small_sell_label":"falling_early","large_buy_label":"rising_early","large_sell_label":"falling_early"}]}],"aggregate":{"total_pairs":5,"tickers":["NVDA","005930.KS"],"avg_return_pct":46.61,"std_return_pct":29.09,"avg_hold_days":137.8,"small_buy_distribution":{"rising_early":4,"falling_late":1},"small_sell_distribution":{"rising_early":1,"falling_early":3,"falling_mid":1},"large_buy_distribution":{"rising_early":4,"rising_mid":1},"large_sell_distribution":{"rising_early":1,"rising_mid":2,"falling_early":2}}};
+
+// ─────────────────────────────────────────────────────────────────
+// judgeTiming(type, zz)  — 독립 모듈, 프로덕션 이식용
+//   입력: type 'BUY'|'SELL',  zz zigzag 객체 (small 또는 large)
+//   출력: { score }  score: 'good'|'warn'|'bad'
+// ─────────────────────────────────────────────────────────────────
+function judgeTiming(type, zz) {
+  if (!zz) return { score: 'warn' };
+  const ph = zz.phase, lb = zz.progress_label;
+  if (type === 'BUY') {
+    if (ph === 'rising'  && lb === 'early') return { score: 'good' };
+    if (ph === 'rising'  && lb === 'mid')   return { score: 'warn' };
+    if (ph === 'rising'  && lb === 'late')  return { score: 'bad'  };
+    if (ph === 'falling' && lb === 'early') return { score: 'bad'  };
+    if (ph === 'falling' && lb === 'mid')   return { score: 'warn' };
+    if (ph === 'falling' && lb === 'late')  return { score: 'good' };
+  } else {
+    if (ph === 'rising'  && lb === 'early') return { score: 'bad'  };
+    if (ph === 'rising'  && lb === 'mid')   return { score: 'warn' };
+    if (ph === 'rising'  && lb === 'late')  return { score: 'good' };
+    if (ph === 'falling' && lb === 'early') return { score: 'good' };
+    if (ph === 'falling' && lb === 'mid')   return { score: 'warn' };
+    if (ph === 'falling' && lb === 'late')  return { score: 'bad'  };
+  }
+  return { score: 'warn' };
+}
+
+// ── 종목 한 줄 내러티브 생성 ──────────────────────────────────────
+// asset_profile → 사용자가 읽을 수 있는 한 문장
+// ─────────────────────────────────────────────────────────────────
+function assetNarrative(name, p) {
+  if (!p) return '';
+
+  // 변동성 묘사
+  const volDesc = p.tags.includes('고변동')
+    ? `단기 파동 하나에 평균 ${p.small_gain_pct.toFixed(0)}%씩 움직이는 <strong>고변동 종목</strong>`
+    : p.tags.includes('중변동')
+    ? `단기 파동 하나에 평균 ${p.small_gain_pct.toFixed(0)}%씩 움직이는 <strong>중변동 종목</strong>`
+    : `비교적 안정적으로 움직이는 <strong>저변동 종목</strong>`;
+
+  // 장기 사이클 묘사
+  const cycleDesc = p.tags.includes('장기 흐름 불규칙')
+    ? `큰 흐름의 타이밍을 잡기 어렵고`
+    : `큰 흐름이 비교적 규칙적으로 반복되며`;
+
+  // 장기 상승 폭 묘사
+  const gainDesc = p.tags.includes('큰 흐름 폭발적')
+    ? `한 번 오를 때 평균 <strong>+${p.large_gain_pct.toFixed(0)}%</strong>라는 폭발적인 상승을 보였습니다`
+    : p.tags.includes('큰 흐름 강함')
+    ? `한 번 오를 때 평균 <strong>+${p.large_gain_pct.toFixed(0)}%</strong>의 강한 상승을 보였습니다`
+    : `한 번 오를 때 평균 <strong>+${p.large_gain_pct.toFixed(0)}%</strong> 수준으로 움직였습니다`;
+
+  // 비대칭 묘사
+  const asymDesc = p.asymmetry < 0.9
+    ? ' 오를 때 빠르고 내릴 때 느린 편입니다.'
+    : p.asymmetry > 1.1
+    ? ' 내릴 때 빠르고 오를 때 느린 편입니다.'
+    : '';
+
+  return `<strong>${name}</strong>은 ${volDesc}입니다. 지난 5년간 ${cycleDesc}, ${gainDesc}.${asymDesc}`;
+}
+
+// ── 스코어 도트 렌더 ──────────────────────────────────────────────
+function scoreDots(txList, type, scale) {
+  // scale: 'small'|'large'  →  small_zigzag / large_zigzag
+  const filtered = txList.filter(tx => tx.type === type);
+  if (filtered.length === 0) return '<span style="color:var(--muted);font-size:.8rem">거래 없음</span>';
+  return filtered.map((tx, i) => {
+    const zz = scale === 'small' ? tx.small_zigzag : tx.large_zigzag;
+    const { score } = judgeTiming(type, zz);
+    const symbol = score === 'good' ? '✓' : score === 'bad' ? '✕' : '△';
+    return `<div class="dot dot-${score}" title="${tx.date}">${symbol}</div>`;
+  }).join('');
+}
+
+// ── 스코어 요약 문장 ──────────────────────────────────────────────
+function scoreSummary(txList, type, profile) {
+  const filtered = txList.filter(tx => tx.type === type);
+  if (filtered.length === 0) return '';
+
+  // 장기 zigzag 기준으로 판단 (더 의미 있음)
+  const scores = filtered.map(tx => judgeTiming(type, tx.large_zigzag).score);
+  const good = scores.filter(s => s === 'good').length;
+  const bad  = scores.filter(s => s === 'bad').length;
+  const n    = scores.length;
+
+  if (type === 'BUY') {
+    if (good === n)
+      return `${n}번 모두 <strong>장기 파동 좋은 위치</strong>에서 진입했습니다.`;
+    if (good > bad)
+      return `${n}번 중 ${good}번은 좋은 타이밍, ${bad}번은 아쉬운 진입이었습니다.`;
+    if (bad > good)
+      return `진입 타이밍이 다소 아쉬웠습니다. ${bad}번의 매수가 불리한 구간에 집중됐습니다.`;
+    return `${n}번의 매수 타이밍이 혼재되어 있습니다.`;
+  } else {
+    // 매도는 장기 파동 중 얼마나 먹고 팔았는지도 고려
+    const avgReturn = txList
+      .filter(tx => tx.type === 'SELL') // pair_summary가 없으므로 간단 메시지
+      .length;
+    if (good === n)
+      return `${n}번 모두 <strong>고점 부근</strong>에서 잘 팔았습니다.`;
+    if (good > bad)
+      return `${n}번 중 ${good}번은 좋은 타이밍에 매도했습니다.`;
+    if (bad > good) {
+      const hint = profile ? ` (이 종목은 장기 파동에서 평균 +${profile.large_gain_pct.toFixed(0)}% 상승)` : '';
+      return `매도가 다소 이른 경향이 있습니다. ${bad}번은 상승 여력이 남은 시점에 팔았습니다.${hint}`;
+    }
+    return `${n}번의 매도 타이밍이 혼재되어 있습니다.`;
+  }
+}
+
+// ── 탭 + 패널 ──
+const tabs   = document.getElementById("tabs");
+const panels = document.getElementById("panels");
+
+DATA.per_ticker.forEach((ticker, ti) => {
+  // 탭
+  const tab = document.createElement("div");
+  tab.className = "tab" + (ti === 0 ? " active" : "");
+  tab.textContent = `${ticker.asset_name} (${ticker.ticker})`;
+  tab.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".ticker-panel").forEach(p => p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("panel-" + ti).classList.add("active");
+  };
+  tabs.appendChild(tab);
+
+  // 패널
+  const panel = document.createElement("div");
+  panel.className = "ticker-panel" + (ti === 0 ? " active" : "");
+  panel.id = "panel-" + ti;
+
+  const p   = ticker.asset_profile;
+  const txs = ticker.transactions;
+
+  panel.innerHTML = `
+    <div class="ticker-section">
+      <div class="asset-narrative">${assetNarrative(ticker.asset_name, p)}</div>
+      <div class="score-grid">
+        <div class="score-block">
+          <div class="score-label">매수 타이밍</div>
+          <div class="score-dots">${scoreDots(txs, 'BUY', 'large')}</div>
+          <div class="score-summary">${scoreSummary(txs, 'BUY', p)}</div>
+        </div>
+        <div class="score-block">
+          <div class="score-label">매도 타이밍</div>
+          <div class="score-dots">${scoreDots(txs, 'SELL', 'large')}</div>
+          <div class="score-summary">${scoreSummary(txs, 'SELL', p)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  panels.appendChild(panel);
+});
+</script>
+</body>
+</html>
